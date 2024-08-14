@@ -10,11 +10,14 @@ class AdminDashboardPage extends StatefulWidget {
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   List<Map<String, dynamic>> users = [];
   List<Map<String, dynamic>> orders = [];
+  List<Map<String, dynamic>> filteredUsers = [];
+  List<Map<String, dynamic>> filteredOrders = [];
   bool loadingUsers = false;
   bool loadingOrders = false;
   bool showUsers = false;
   bool showOrders = false;
   String errorMessage = '';
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -31,6 +34,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final userList = await usersCollection.find().toList();
       setState(() {
         users = userList;
+        filteredUsers = userList;
         showUsers = true;
         showOrders = false; // Hide orders when users are displayed
       });
@@ -55,6 +59,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final orderList = await ordersCollection.find().toList();
       setState(() {
         orders = orderList;
+        filteredOrders = orderList;
         showOrders = true;
         showUsers = false; // Hide users when orders are displayed
       });
@@ -67,6 +72,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         loadingOrders = false;
       });
     }
+  }
+
+  void _filterUsers(String query) {
+    setState(() {
+      searchQuery = query;
+      filteredUsers = users.where((user) {
+        final username = user['username'].toString().toLowerCase();
+        final searchLower = query.toLowerCase();
+        return username.contains(searchLower);
+      }).toList();
+    });
+  }
+
+  void _filterOrders(String query) {
+    setState(() {
+      searchQuery = query;
+      filteredOrders = orders.where((order) {
+        final username = order['username'].toString().toLowerCase();
+        final searchLower = query.toLowerCase();
+        return username.contains(searchLower);
+      }).toList();
+    });
   }
 
   @override
@@ -91,6 +118,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ],
           ),
           SizedBox(height: 20),
+          if (showUsers || showOrders) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: TextField(
+                decoration: InputDecoration(
+                  labelText: showUsers ? 'Search Users' : 'Search Orders',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  if (showUsers) {
+                    _filterUsers(value);
+                  } else if (showOrders) {
+                    _filterOrders(value);
+                  }
+                },
+              ),
+            ),
+          ],
+          SizedBox(height: 20),
           if (loadingUsers || loadingOrders) ...[
             CircularProgressIndicator(),
           ] else if (errorMessage.isNotEmpty) ...[
@@ -104,7 +150,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     DataColumn(label: Text('Username')),
                     DataColumn(label: Text('Password')),
                   ],
-                  rows: users.map((user) {
+                  rows: filteredUsers.map((user) {
                     return DataRow(
                       cells: [
                         DataCell(Text(user['username'])),
@@ -125,7 +171,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     DataColumn(label: Text('Username')),
                     DataColumn(label: Text('Total Amount')),
                   ],
-                  rows: orders.map((order) {
+                  rows: filteredOrders.map((order) {
                     return DataRow(
                       cells: [
                         DataCell(Text(order['username'])),
